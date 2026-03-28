@@ -78,6 +78,32 @@ Here is the updated UML Diagram:
 | `Pet ..> Task` dependency added | Makes explicit that `Pet` creates `Task` objects |
 
 
+
+Key architectural shifts
+Task — added frequency + completed
+
+frequency: "daily" / "weekly" / "as-needed" — validated in __post_init__
+completed: tracks whether the task is done today
+mark_complete() / mark_incomplete() — clean state transitions
+Pet — now owns its tasks
+
+tasks: list[Task] lives on the pet, not the scheduler
+add_task(), remove_task(), get_pending_tasks(), get_completed_tasks()
+load_default_tasks() populates species defaults directly onto the pet
+Owner — now manages multiple pets
+
+pets: list[Pet] replaces the single pet field
+add_pet() / remove_pet() to manage the roster
+get_all_tasks() and get_all_pending_tasks() return (Pet, Task) pairs so the scheduler always knows which pet a task belongs to
+Scheduler — now the true "brain"
+
+No longer holds its own task list — it reads from owner.pets at runtime
+get_all_pending() — retrieves tasks across all pets
+mark_complete(pet_name, task_title) — manages state across the pet graph
+reset_daily_tasks() — resets all daily tasks at the start of a new day
+generate_plan() schedules across all pets, preserving the pet reference in each ScheduledTask
+
+
 ---
 
 ## 2. Scheduling Logic and Tradeoffs
