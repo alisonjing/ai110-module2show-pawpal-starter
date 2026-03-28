@@ -26,8 +26,7 @@ My initial UML design centered on six classes organized into two layers: data ob
 - **`DailyPlan`** — the output artifact of the scheduler. Holds the list of scheduled tasks and the list of tasks that were skipped. Responsible for formatting the plan for display and generating a plain-language explanation of scheduling decisions.
 - **`ScheduledTask`** — a lightweight wrapper around a `Task` that adds a start time, end time, and a reason string explaining why it was included. Responsible for representing one time-blocked slot in the final plan.
 
-![Initial UML Diagram](initial_UML_Diagram.png)
-
+<div align="center"><img src="initial_UML_Diagram.png" alt="Initial UML Diagram" width="80%"></div>
 
 
 **b. Design changes**
@@ -62,7 +61,7 @@ Nothing prevents Owner.available_minutes = 0 or a negative value. generate_plan(
 
 Here is the updated UML Diagram:
 
-![Initial UML Diagram](updated_UML_Diagram.png)
+<div align="center"><img src="updated_UML_Diagram.png" alt="Updated UML Diagram" width="80%"></div>
 
 - If yes, describe at least one change and why you made it.
 
