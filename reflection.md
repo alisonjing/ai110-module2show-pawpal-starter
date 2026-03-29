@@ -45,6 +45,7 @@ Scheduler never reads owner.preferred_start_time, so every plan will silently de
 The plan doesn't know whose plan it is. This matters when explain() formats output — it can't say "Jordan, here is your plan for Mochi" without that context. Consider passing owner into DailyPlan, or having explain() accept it as a parameter.
 
 Potential Logic Bottlenecks
+
 4. priority is an unconstrained string
 Task.priority accepts any string. If a user passes "HIGH" or "urgent", is_high_priority() and _sort_by_priority() will silently break. Consider validating on construction with __post_init__ or using a constant like VALID_PRIORITIES = {"low", "medium", "high"}.
 
