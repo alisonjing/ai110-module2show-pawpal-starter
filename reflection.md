@@ -79,7 +79,7 @@ Here is the updated UML Diagram:
 
 
 
-Key architectural shifts
+**Key architectural shifts**
 Task — added frequency + completed
 
 frequency: "daily" / "weekly" / "as-needed" — validated in __post_init__
@@ -138,8 +138,31 @@ generate_plan() schedules across all pets, preserving the pet reference in each 
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+I wrote two focused unit tests targeting the most fundamental behaviors in the system:
+
+**Test 1 — Task Completion (`test_mark_complete_changes_task_status`)**
+```python
+def test_mark_complete_changes_task_status():
+    task = Task(title="Feeding", duration_minutes=10, priority="high", frequency="daily")
+    assert task.completed is False
+    task.mark_complete()
+    assert task.completed is True
+```
+This test verifies that calling `mark_complete()` actually flips `completed` from `False` to `True`. It checks the state *before and after* the call so a no-op implementation cannot accidentally pass. This matters because the scheduler relies on `completed` to filter out finished tasks — if this flag doesn't update correctly, pets would be assigned duplicate tasks every run.
+
+**Test 2 — Task Addition (`test_add_task_increases_pet_task_count`)**
+```python
+def test_add_task_increases_pet_task_count():
+    pet = Pet(name="Mochi", species="dog")
+    assert len(pet.tasks) == 0
+    pet.add_task(Task(title="Walk", duration_minutes=30, priority="high", frequency="daily"))
+    assert len(pet.tasks) == 1
+    pet.add_task(Task(title="Feeding", duration_minutes=10, priority="high", frequency="daily"))
+    assert len(pet.tasks) == 2
+```
+This test verifies that each call to `add_task()` increases the pet's task list by exactly one. It checks incrementally (0 → 1 → 2) rather than just the final count, which would catch a bug where only the last-added task is kept.
+
+<div align="center"><img src="Test.png" alt="Testing" width="80%"></div>
 
 **b. Confidence**
 
