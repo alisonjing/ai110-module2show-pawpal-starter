@@ -182,7 +182,7 @@ generate_plan() schedules across all pets, preserving the pet reference in each 
 
 
 Based on full final implementation in pawpal_system.py, here are all the updates needed:
-#### 1. New attributes (not in Phase 1)
+ - #### 1. New attributes (not in Phase 1)
 
 | Class | Attribute added | Why it matters |
 |---|---|---|
@@ -196,7 +196,7 @@ Based on full final implementation in pawpal_system.py, here are all the updates
 
 ---
 
-#### 2. New methods (not in Phase 1)
+- #### 2. New methods (not in Phase 1)
 
 | Class | Method added |
 |---|---|
@@ -208,7 +208,7 @@ Based on full final implementation in pawpal_system.py, here are all the updates
 
 ---
 
-#### 3. Relationship changes
+- #### 3. Relationship changes
 
 | Relationship | Phase 1 | Final |
 |---|---|---|
@@ -220,7 +220,7 @@ Based on full final implementation in pawpal_system.py, here are all the updates
 
 ---
 
-### 4. Removed from Phase 1
+- #### 4. Removed from Phase 1
 
 | Item | Removed |
 |---|---|
