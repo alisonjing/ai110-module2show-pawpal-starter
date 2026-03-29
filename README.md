@@ -41,3 +41,32 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+### Testing PawPal+
+
+Run the full test suite from the project root:
+
+```bash
+python -m pytest
+```
+
+The suite covers three core scheduling behaviors:
+
+| Area | Test(s) | What is verified |
+|---|---|---|
+| **Sorting Correctness** | `test_scheduled_tasks_are_in_chronological_order` | All scheduled tasks are returned in ascending `start_time` order — no task is inserted out of sequence |
+| **Recurrence Logic** | `test_daily_task_reappears_after_reset` | Marking a `frequency="daily"` task complete removes it from pending; calling `reset_daily_tasks()` restores it, modelling a new task for the following day |
+| **Conflict Detection** | `test_scheduler_produces_no_duplicate_start_times`, `test_scheduler_no_overlapping_time_slots` | No two tasks share the same start time, and no task's end time bleeds into the next task's start time |
+
+<div align="center"><img src="27Tests.png" alt="Testing" width="100%"></div>
+
+Confidence Level: ★★★★☆ (4/5)
+
+27/27 tests pass. Here's the reasoning behind the rating:
+
+| Factor | Assessment |
+|---|---|
+| **Core logic** | All task, pet, owner, and scheduler behaviors verified — strong foundation |
+| **Happy-path coverage** | Sorting, recurrence, conflict detection all confirmed working |
+| **Input validation** | Invalid priority, frequency, duration, and budget all raise correctly |
+| **What keeps it from 5 stars** | No tests for multi-pet conflict detection, `weekly` task reset isolation, midnight-rollover edge cases, or the Streamlit UI layer — gaps identified in `Phase4_planning.md` remain untested |

@@ -126,3 +126,15 @@ Why two tests instead of one:
 |---|---|
 | Duplicate start times | Two tasks stamped with the exact same `"HH:MM"` — a direct collision |
 | Overlapping slots | Task A ends at `09:30`, Task B starts at `09:15` — a partial overlap that the first test would miss |
+
+
+Confidence Level: ★★★★☆ (4/5)
+
+27/27 tests pass. Here's the reasoning behind the rating:
+
+Factor	Assessment
+Core logic	All task, pet, owner, and scheduler behaviors verified — strong foundation
+Happy-path coverage	Sorting, recurrence, conflict detection all confirmed working
+Input validation	Invalid priority, frequency, duration, and budget all raise correctly
+What keeps it from 5 stars	No tests for multi-pet conflict detection, weekly task reset isolation, midnight-rollover edge cases, or the Streamlit UI layer — gaps identified in Phase4_planning.md remain untested
+The scheduling engine is reliable for the scenarios it knows about. The missing coverage is around edge cases (special_needs, over-budget high-priority clashes, non-daily recurrence) that the system supports in code but the test suite doesn't yet exercise.
