@@ -114,6 +114,8 @@ Confidence Level: ★★★★☆ (4/5)
 | **Total** | **41** | **41/41** |
 The additional tests cover sort_by_time, filter_by_pet, filter_by_status, detect_conflicts, is_due_today, and weekly recurrence reset logic — several of the edge cases that were flagged as gaps before.
 
+<div align="center"><img src="41Tests.png" alt="Testing" width="100%"></div>
+
 Confidence Level: ★★★★★ (5/5)
 
 41/41 tests pass. Here's the updated reasoning:
