@@ -472,3 +472,33 @@ The pattern that worked throughout this project:
 | AI | Draft the structure, fill the boilerplate, suggest coverage |
 | Human | Define what correctness means, identify what's missing, decide what's worth testing |
 Designing systems is mostly about making explicit decisions — what should happen in every case, including the ones you hope never occur. AI accelerates the writing. It does not replace the thinking.
+
+- How did using separate chat sessions for different phases help you stay organized?
+
+| Session | Purpose | What it protected |
+|---|---|---|
+| **1 — Brainstorm** | Work through the prompt, ask questions, explore design space | Freedom to think out loud without committing to implementation |
+| **2 — Test & verify** | Generate tests, run them, reason about coverage | Focus on correctness — code was fixed, only behavior was under question |
+| **3 — Write & reflect** | Articulate what was built, what worked, what didn't | Honest evaluation — distance from the build makes assessment more accurate |
+
+The key insight in my structure is that Session 1 ends before any code is written. Brainstorming and building in the same session creates pressure to commit to the first idea that sounds workable. Ending the session forces a natural pause. I brought a considered design into Session 2 rather than a half-formed one.
+
+Session 3 being separate from Session 2 matters for the same reason: it's hard to honestly reflect on a decision while I'm still in the middle of executing it. Writing the reflection in a clean session meant I was describing what actually happened, not what I hoped was happening.
+
+- Summarize what you learned about being the "lead architect" when collaborating with powerful AI tools.
+
+Being the lead architect means I was never just accepting what AI produced, I was deciding what to build, why, and whether the output actually proved what I needed it to prove.
+
+The core lesson: AI is a powerful executor, not a decision-maker.
+
+| Architect responsibility | What that looked like in practice |
+|---|---|
+| Define correctness | I decided what "the scheduler works" means — AI drafted the test |
+| Set the scope | I chose which edge cases mattered — AI filled in the assertions |
+| Evaluate output | I asked "is this test meaningful or just green?" — AI couldn't answer that |
+| Maintain the vision | I kept each session focused on one phase — AI would have mixed them freely |
+| Own the gaps | I identified what was still untested — AI only knew what it had already written |
+The most important shift was recognizing that the hardest part of this project wasn't writing code — it was knowing what questions to ask. AI answered my questions well. It could not generate the questions themselves.
+
+Being lead architect also meant resisting AI's natural tendency toward completeness-as-performance generating more tests, more features, more output. My job was to push back: does this test catch a real failure? does this feature solve a real problem? Saying "that's enough" is an architectural decision too, and it's one only I could make.
+
