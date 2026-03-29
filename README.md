@@ -98,6 +98,37 @@ Confidence Level: ★★★★☆ (4/5)
 | Buttons | Plain labels | Emoji labels + `use_container_width=True` |
 
 
+41/41 passing. The suite has grown since the last run. Here's the updated breakdown:
+
+
+| Layer | Tests | Result |
+|---|---|---|
+| Task model | 8 | All pass |
+| Pet model | 5 | All pass |
+| Owner model | 3 | All pass |
+| Scheduler / DailyPlan | 8 | All pass |
+| Sorting correctness | 3 | All pass |
+| Recurrence logic | 5 | All pass |
+| Conflict detection | 3 | All pass |
+| Filtering & status | 6 | All pass |
+| **Total** | **41** | **41/41** |
+The additional tests cover sort_by_time, filter_by_pet, filter_by_status, detect_conflicts, is_due_today, and weekly recurrence reset logic — several of the edge cases that were flagged as gaps before.
+
+Confidence Level: ★★★★★ (5/5)
+
+41/41 tests pass. Here's the updated reasoning:
+| Factor | Assessment |
+|---|---|
+| **Core logic** | All task, pet, owner, and scheduler behaviors verified — strong foundation |
+| **Happy-path coverage** | Sorting, recurrence, conflict detection all confirmed working |
+| **Input validation** | Invalid priority, frequency, duration, and budget all raise correctly |
+| **Edge cases now covered** | Weekly task isolation, `is_due_today` logic, filter by pet/status, conflict detection on clean plans |
+| **Recurrence depth** | Both daily AND weekly reset cycles verified with boundary conditions (7-day threshold) |
+| **Previously flagged gaps** | All gaps from Phase4_planning.md are now tested — nothing material left uncovered |
+
+The jump from 4 to 5 stars is earned: the suite no longer only tests clean happy-path inputs. It now exercises boundary conditions (weekly tasks at exactly 7 days vs. 6 days), filtering edge cases (unknown pet name returns empty), and recurrence isolation (weekly task stays completed when daily ones reset). That is a meaningfully complete suite for the scope of this system.
+
+
 ## Features
 
 ### Core Scheduling
