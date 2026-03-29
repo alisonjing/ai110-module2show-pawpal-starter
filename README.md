@@ -97,5 +97,17 @@ Confidence Level: ★★★★☆ (4/5)
 | Skipped tasks | Comma-joined `st.info` string | Full `st.dataframe` with pet, task, duration, reason columns |
 | Buttons | Plain labels | Emoji labels + `use_container_width=True` |
 
+What's different from the Phase 1 UML:
+
+| Class | What changed |
+|---|---|
+| **`Task`** | Added `frequency`, `completed`, `last_completed_date`; added `mark_complete()`, `mark_incomplete()`, `is_due_today()` |
+| **`Pet`** | Now owns `tasks: list[Task]` directly; added `get_completed_tasks()`, `load_default_tasks()` |
+| **`Owner`** | Changed `pet: Pet` → `pets: list[Pet]`; added `add_pet()`, `remove_pet()`, `get_all_tasks()`, `get_all_pending_tasks()` |
+| **`Scheduler`** | No longer holds its own task list; reads from owner's pets at runtime; added `filter_pending_by_pet()`, `filter_by_status()`, `reset_daily_tasks()` |
+| **`DailyPlan`** | Added `owner` reference; added `sort_by_time()`, `filter_by_pet()`, `detect_conflicts()` |
+| **`ScheduledTask`** | Added `pet: Pet` reference (was only `task: Task` before) |
+
+
 
 

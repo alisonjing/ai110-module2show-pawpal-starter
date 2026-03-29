@@ -65,6 +65,15 @@ Here is the updated UML Diagram:
 
 - If yes, describe at least one change and why you made it.
 
+
+And finally, here is the final UML diagram:
+
+
+<div align="center"><img src="Final_UML_Diagram" alt="Final UML Diagram" width="80%"></div>
+
+
+Based on the full final implementation in pawpal_system.py, here are all the updates needed:
+
 **What changed from the first version:**
 
 | Change | Why |
@@ -76,6 +85,54 @@ Here is the updated UML Diagram:
 | `DailyPlan.owner` attribute added | Lets `explain()` say whose plan it is |
 | `DailyPlan --> Owner` relationship added | Reflects the new ownership reference |
 | `Pet ..> Task` dependency added | Makes explicit that `Pet` creates `Task` objects |
+
+
+### 1. New attributes (not in Phase 1)
+
+| Class | Attribute added | Why it matters |
+|---|---|---|
+| `Task` | `frequency: str` | Core scheduling input — drives recurrence logic |
+| `Task` | `completed: bool` | Tracks daily state; used by `get_pending_tasks()` |
+| `Task` | `last_completed_date: date` | Enables calendar-based weekly recurrence |
+| `Pet` | `tasks: list[Task]` | Tasks moved from `Scheduler` onto `Pet` — major ownership shift |
+| `Owner` | `pets: list[Pet]` | Was a single `pet: Pet`; now a collection |
+| `DailyPlan` | `owner: Owner` | Needed so `explain()` can name the owner and pets |
+| `ScheduledTask` | `pet: Pet` | Was missing — needed to know which pet each slot belongs to |
+
+---
+
+### 2. New methods (not in Phase 1)
+
+| Class | Method added |
+|---|---|
+| `Task` | `mark_complete()`, `mark_incomplete()`, `is_due_today()` |
+| `Pet` | `add_task()`, `remove_task()`, `get_pending_tasks()`, `get_completed_tasks()`, `load_default_tasks()` |
+| `Owner` | `add_pet()`, `remove_pet()`, `get_all_tasks()`, `get_all_pending_tasks()` |
+| `Scheduler` | `get_all_pending()`, `filter_pending_by_pet()`, `filter_by_status()`, `mark_complete()`, `reset_daily_tasks()` |
+| `DailyPlan` | `sort_by_time()`, `filter_by_pet()`, `detect_conflicts()` |
+
+---
+
+### 3. Relationship changes
+
+| Relationship | Phase 1 | Final |
+|---|---|---|
+| `Owner` → `Pet` | `owner has one pet` | `owner has many pets` (composition) |
+| `Pet` → `Task` | `Pet` creates tasks via `get_default_tasks()` | `Pet` **owns** a `tasks` list (composition) |
+| `Scheduler` → `Task` | Scheduler held its own `tasks: list[Task]` pool | Scheduler reads tasks **through** `owner.pets` at runtime — no direct ownership |
+| `ScheduledTask` → `Pet` | No relationship | `ScheduledTask` holds a direct `pet` reference |
+| `DailyPlan` → `Owner` | No relationship | `DailyPlan` holds an `owner` reference |
+
+---
+
+### 4. Removed from Phase 1
+
+| Item | Removed |
+|---|---|
+| `Scheduler.tasks: list[Task]` | Scheduler no longer owns a task pool |
+| `Scheduler.add_task()` | Tasks are added via `pet.add_task()` instead |
+| `Pet.get_default_tasks()` returning a list | Replaced by `load_default_tasks()` which mutates `self.tasks` directly |
+
 
 
 
@@ -121,6 +178,56 @@ get_all_pending() — retrieves tasks across all pets
 mark_complete(pet_name, task_title) — manages state across the pet graph
 reset_daily_tasks() — resets all daily tasks at the start of a new day
 generate_plan() schedules across all pets, preserving the pet reference in each ScheduledTask
+
+
+
+Based on full final implementation in pawpal_system.py, here are all the updates needed:
+#### 1. New attributes (not in Phase 1)
+
+| Class | Attribute added | Why it matters |
+|---|---|---|
+| `Task` | `frequency: str` | Core scheduling input — drives recurrence logic |
+| `Task` | `completed: bool` | Tracks daily state; used by `get_pending_tasks()` |
+| `Task` | `last_completed_date: date` | Enables calendar-based weekly recurrence |
+| `Pet` | `tasks: list[Task]` | Tasks moved from `Scheduler` onto `Pet` — major ownership shift |
+| `Owner` | `pets: list[Pet]` | Was a single `pet: Pet`; now a collection |
+| `DailyPlan` | `owner: Owner` | Needed so `explain()` can name the owner and pets |
+| `ScheduledTask` | `pet: Pet` | Was missing — needed to know which pet each slot belongs to |
+
+---
+
+#### 2. New methods (not in Phase 1)
+
+| Class | Method added |
+|---|---|
+| `Task` | `mark_complete()`, `mark_incomplete()`, `is_due_today()` |
+| `Pet` | `add_task()`, `remove_task()`, `get_pending_tasks()`, `get_completed_tasks()`, `load_default_tasks()` |
+| `Owner` | `add_pet()`, `remove_pet()`, `get_all_tasks()`, `get_all_pending_tasks()` |
+| `Scheduler` | `get_all_pending()`, `filter_pending_by_pet()`, `filter_by_status()`, `mark_complete()`, `reset_daily_tasks()` |
+| `DailyPlan` | `sort_by_time()`, `filter_by_pet()`, `detect_conflicts()` |
+
+---
+
+#### 3. Relationship changes
+
+| Relationship | Phase 1 | Final |
+|---|---|---|
+| `Owner` → `Pet` | `owner has one pet` | `owner has many pets` (composition) |
+| `Pet` → `Task` | `Pet` creates tasks via `get_default_tasks()` | `Pet` **owns** a `tasks` list (composition) |
+| `Scheduler` → `Task` | Scheduler held its own `tasks: list[Task]` pool | Scheduler reads tasks **through** `owner.pets` at runtime — no direct ownership |
+| `ScheduledTask` → `Pet` | No relationship | `ScheduledTask` holds a direct `pet` reference |
+| `DailyPlan` → `Owner` | No relationship | `DailyPlan` holds an `owner` reference |
+
+---
+
+### 4. Removed from Phase 1
+
+| Item | Removed |
+|---|---|
+| `Scheduler.tasks: list[Task]` | Scheduler no longer owns a task pool |
+| `Scheduler.add_task()` | Tasks are added via `pet.add_task()` instead |
+| `Pet.get_default_tasks()` returning a list | Replaced by `load_default_tasks()` which mutates `self.tasks` directly |
+
 
 
 ---
