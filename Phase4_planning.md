@@ -147,8 +147,9 @@ File: pawpal_system.py — _sort_by_priority()
 Currently, equal-priority tasks schedule longer ones first. Flip it: schedule shorter tasks first at the same priority so you knock out more tasks before hitting the time budget.
 
 
-# Change: (PRIORITY_RANK[task.priority], -task.duration_minutes)
-# To:     (PRIORITY_RANK[task.priority],  task.duration_minutes)
+Change: (PRIORITY_RANK[task.priority], -task.duration_minutes)
+To:     (PRIORITY_RANK[task.priority],  task.duration_minutes)
+
 2. Sort Skipped Tasks by Priority for the UI
 File: pawpal_system.py — generate_plan()
 
@@ -156,6 +157,7 @@ skipped_tasks are currently in arbitrary order. Sort them so the owner sees whic
 
 
 self.skipped_tasks.sort(key=lambda pt: PRIORITY_RANK[pt[1].priority], reverse=True)
+
 3. Weekly Task "Due Soon" Detection
 File: pawpal_system.py — Task or Scheduler
 
@@ -166,6 +168,7 @@ def is_overdue(self, days_threshold: int = 7) -> bool:
     if self.last_completed_date is None:
         return True
     return (date.today() - self.last_completed_date).days >= days_threshold
+
 4. Multi-Pet Interleaving — Avoid Long Same-Pet Runs
 File: pawpal_system.py — generate_plan()
 
@@ -182,6 +185,7 @@ from functools import cached_property
 @cached_property
 def total_duration(self) -> int:
     return sum(st.task.duration_minutes for st in self.scheduled_tasks)
+
 6. Deduplication Guard in add_task()
 File: pawpal_system.py — Pet.add_task()
 
@@ -191,6 +195,7 @@ If the user calls "Load Defaults" twice, tasks duplicate. Add a title-based dedu
 def add_task(self, task: Task) -> None:
     if not any(t.title == task.title for t in self.tasks):
         self.tasks.append(task)
+        
 7. Budget Utilization Warning
 File: app.py or DailyPlan.explain()
 
