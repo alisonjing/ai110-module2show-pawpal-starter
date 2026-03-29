@@ -22,6 +22,7 @@ class Task:
     completed: bool = False
 
     def __post_init__(self) -> None:
+        """Validate priority, frequency, and duration on construction."""
         if self.priority not in VALID_PRIORITIES:
             raise ValueError(f"priority must be one of {VALID_PRIORITIES}, got '{self.priority}'")
         if self.frequency not in VALID_FREQUENCIES:
@@ -30,15 +31,19 @@ class Task:
             raise ValueError("duration_minutes must be greater than 0")
 
     def mark_complete(self) -> None:
+        """Mark this task as completed."""
         self.completed = True
 
     def mark_incomplete(self) -> None:
+        """Reset this task to incomplete (e.g., at the start of a new day)."""
         self.completed = False
 
     def is_high_priority(self) -> bool:
+        """Return True if this task's priority is high."""
         return self.priority == "high"
 
     def to_dict(self) -> dict:
+        """Return all task fields as a plain dictionary."""
         return {
             "title": self.title,
             "duration_minutes": self.duration_minutes,
@@ -62,9 +67,11 @@ class Pet:
     tasks: list[Task] = field(default_factory=list)
 
     def add_task(self, task: Task) -> None:
+        """Append a task to this pet's task list."""
         self.tasks.append(task)
 
     def remove_task(self, title: str) -> None:
+        """Remove all tasks matching the given title from this pet's task list."""
         self.tasks = [t for t in self.tasks if t.title != title]
 
     def get_pending_tasks(self) -> list[Task]:
@@ -72,6 +79,7 @@ class Pet:
         return [t for t in self.tasks if not t.completed]
 
     def get_completed_tasks(self) -> list[Task]:
+        """Return only tasks that have been marked complete."""
         return [t for t in self.tasks if t.completed]
 
     def load_default_tasks(self) -> None:
@@ -102,13 +110,16 @@ class Owner:
     pets: list[Pet] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        """Validate that the owner's time budget is a positive number."""
         if self.available_minutes <= 0:
             raise ValueError("available_minutes must be greater than 0")
 
     def add_pet(self, pet: Pet) -> None:
+        """Register a pet under this owner."""
         self.pets.append(pet)
 
     def remove_pet(self, name: str) -> None:
+        """Remove a pet by name from this owner's pet list."""
         self.pets = [p for p in self.pets if p.name != name]
 
     def get_all_tasks(self) -> list[tuple[Pet, Task]]:
@@ -120,6 +131,7 @@ class Owner:
         return [(pet, task) for pet in self.pets for task in pet.get_pending_tasks()]
 
     def get_time_budget(self) -> int:
+        """Return the total minutes available for scheduling today."""
         return self.available_minutes
 
 
@@ -136,6 +148,7 @@ class ScheduledTask:
     reason: str = ""
 
     def to_dict(self) -> dict:
+        """Return a display-ready dictionary for this scheduled slot."""
         return {
             "time": f"{self.start_time} – {self.end_time}",
             "pet": self.pet.name,
@@ -160,6 +173,7 @@ class DailyPlan:
 
     @property
     def total_duration(self) -> int:
+        """Return the total scheduled time in minutes across all scheduled tasks."""
         return sum(st.task.duration_minutes for st in self.scheduled_tasks)
 
     def display(self) -> list[dict]:
@@ -167,6 +181,7 @@ class DailyPlan:
         return [st.to_dict() for st in self.scheduled_tasks]
 
     def explain(self) -> str:
+        """Return a human-readable summary of the plan including skipped tasks and time used."""
         pet_names = ", ".join(p.name for p in self.owner.pets) or "your pet"
         lines = [f"**{self.owner.name}'s daily plan for {pet_names}**\n"]
 
@@ -278,6 +293,7 @@ class Scheduler:
     def _sort_by_priority(
         self, pairs: list[tuple[Pet, Task]]
     ) -> list[tuple[Pet, Task]]:
+        """Sort (pet, task) pairs by priority descending; use duration as a tiebreaker."""
         return sorted(
             pairs,
             key=lambda pt: (PRIORITY_RANK.get(pt[1].priority, 0), -pt[1].duration_minutes),
@@ -285,6 +301,7 @@ class Scheduler:
         )
 
     def _fits_in_budget(self, task: Task, remaining: int) -> bool:
+        """Return True if the task's duration does not exceed the remaining time budget."""
         return task.duration_minutes <= remaining
 
 

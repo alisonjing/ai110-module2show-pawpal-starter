@@ -162,7 +162,7 @@ def test_add_task_increases_pet_task_count():
 ```
 This test verifies that each call to `add_task()` increases the pet's task list by exactly one. It checks incrementally (0 → 1 → 2) rather than just the final count, which would catch a bug where only the last-added task is kept.
 
-<div align="center"><img src="Test.png" alt="Testing" width="80%"></div>
+<div align="center"><img src="Test.png" alt="Testing" width="100%"></div>
 
 **b. Confidence**
 
