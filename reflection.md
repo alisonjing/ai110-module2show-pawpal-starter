@@ -79,6 +79,25 @@ Here is the updated UML Diagram:
 
 
 
+**Step 3: Wiring UI Actions to Logic**
+
+- Every placeholder is now wired to a real backend call. Here's what replaced what:
+
+| Before (placeholder) | After (real call) |
+|---|---|
+| `st.text_input` values stored as raw strings | `Pet(name=..., species=...)` → `pet.load_default_tasks()` |
+| `Owner(...)` never called | `Owner(name=..., available_minutes=..., preferred_start_time=...)` |
+| `owner.add_pet()` never called | `owner.add_pet(pet)` — links pet to owner |
+| Tasks appended as plain `dict` to `st.session_state.tasks` | `Task(...)` object created → `pet.add_task(new_task)` |
+| "Generate schedule" showed a warning | `Scheduler(owner=...).generate_plan()` → `plan.display()` + `plan.explain()` |
+
+- Step 1 → Add a Pet      →  Pet() + Owner() + owner.add_pet()
+- Step 2 → Schedule Tasks →  Task() + pet.add_task()
+- Step 3 → See Today's Tasks →  Scheduler().generate_plan() + plan.display()
+
+
+
+
 **Key architectural shifts**
 Task — added frequency + completed
 
