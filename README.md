@@ -70,3 +70,16 @@ Confidence Level: ★★★★☆ (4/5)
 | **Happy-path coverage** | Sorting, recurrence, conflict detection all confirmed working |
 | **Input validation** | Invalid priority, frequency, duration, and budget all raise correctly |
 | **What keeps it from 5 stars** | No tests for multi-pet conflict detection, `weekly` task reset isolation, midnight-rollover edge cases, or the Streamlit UI layer — gaps identified in `Phase4_planning.md` remain untested |
+
+| Layer | Tests | Result |
+|---|---|---|
+| Task model | 8 | All pass |
+| Pet model | 5 | All pass |
+| Owner model | 3 | All pass |
+| Scheduler / DailyPlan | 8 | All pass |
+| Sorting correctness | 1 | All pass |
+| Recurrence logic | 1 | All pass |
+| Conflict detection | 2 | All pass |
+| **Total** | **27** | **27/27** |
+
+
