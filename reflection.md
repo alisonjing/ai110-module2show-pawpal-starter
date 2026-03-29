@@ -251,12 +251,75 @@ Based on full final implementation in pawpal_system.py, here are all the updates
 **a. How you used AI**
 
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
+
+I used VS Code Copilot (powered by Claude) throughout every phase of this project:
+
+- **Design brainstorming** — Asked Claude to identify core objects, their attributes,
+  and methods from a plain-language description of the app. This produced the initial
+  six-class UML in one prompt.
+- **Skeleton generation** — Used Agent/Edit mode to generate all class stubs with
+  Python dataclasses, type hints, and empty method bodies in one pass.
+- **Skeleton review** — Asked Claude to review `pawpal_system.py` for missing
+  relationships and logic bottlenecks. It caught five real gaps (unused
+  `preferred_start_time`, missing `load_pet_defaults()` bridge, unconstrained
+  priority strings, no `remove_task`, no floor on `available_minutes`).
+- **Implementation** — Used Edit mode to flesh out all method bodies, including the
+  greedy scheduling algorithm, weekly recurrence logic, and conflict detection.
+- **Test generation** — Used the Generate Tests smart action to draft unit tests
+  for task completion, task addition, recurrence, conflict detection, and sorting.
+- **Documentation** — Used Generate Documentation to add 1-line docstrings to all
+  methods and drafted the Features list and README sections via Copilot Chat.
+
 - What kinds of prompts or questions were most helpful?
+The most helpful prompt patterns were:
+- `"Based on #file:pawpal_system.py, what missing relationships or bottlenecks do you see?"`
+- `"Use Python dataclasses for data objects and keep method stubs empty"`
+- `"Suggest a clearer, more readable way to format this output for the terminal"`
+
+| Feature | How it helped |
+|---|---|
+| **Inline Chat on a selection** | Fastest way to refactor a single method or ask why a specific line works the way it does — context was exactly scoped to what I highlighted |
+| **Agent Mode (`#file:` references)** | Most powerful for cross-file reasoning — asking Claude to review the skeleton against the UML or wire `app.py` to `pawpal_system.py` without losing context |
+| **Edit Mode for implementation** | Generated complete, runnable method bodies (e.g., `generate_plan`, `detect_conflicts`, `reset_daily_tasks`) that only needed minor tweaks |
+| **Generate Tests smart action** | Produced correctly structured `pytest` tests instantly — saved significant boilerplate time |
+| **Generate Documentation smart action** | Added accurate 1-line docstrings to every method in one pass, consistent in style and tone |
+| **Copilot Chat with `#codebase`** | Best for high-level questions spanning multiple files — e.g., "What features does my final implementation have?" produced the full Features list |
+
 
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
+One moment where I did not accept an AI suggestion as is: when Claude initially
+placed the task pool on `Scheduler` (holding `tasks: list[Task]`), I redesigned
+this so tasks live on `Pet` instead. The AI's suggestion was technically valid but
+violated the intended ownership model — a task is a pet's responsibility, not the
+scheduler's. I verified the change was correct by checking that `Scheduler` could
+still retrieve all tasks via `owner.get_all_pending_tasks()` without owning them
+directly, which kept the scheduler stateless and easier to test.
+
 - How did you evaluate or verify what the AI suggested?
+
+I evaluated AI suggestions using three checks before accepting them:
+
+1. **Does it match the ownership model?** 
+    — When Claude initially put `tasks: list[Task]`
+   on `Scheduler`, I rejected it because tasks logically belong to a pet, not the
+   scheduler. I traced through the call chain (`owner → pets → tasks`) to confirm
+   the redesign still worked before committing it.
+
+2. **Does it actually run?** 
+    — After every AI-generated method body I ran either
+   `python main.py` or `pytest` immediately. If the output matched the expected
+   schedule order, budget usage, or skipped-task list, I accepted it. If not, I
+   fed the error back into Inline Chat and asked Claude to explain and fix it.
+
+3. **Does it handle the edge cases I care about?** 
+    — For `reset_daily_tasks()`,
+   Claude's first version reset *all* tasks regardless of frequency. I checked the
+   code against the spec (weekly tasks should only reset after 7 days) and asked
+   for a revision that added the `last_completed_date` calendar check before
+   accepting the final version.
+
 
 ---
 
@@ -293,7 +356,40 @@ This test verifies that each call to `add_task()` increases the pet's task list 
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
+
+
+Confidence Level: ★★★★★ (5/5)
+
+41/41 tests pass. Here's the updated reasoning:
+
+| Factor | Assessment |
+|---|---|
+| **Core logic** | All task, pet, owner, and scheduler behaviors verified — strong foundation |
+| **Happy-path coverage** | Sorting, recurrence, conflict detection all confirmed working |
+| **Input validation** | Invalid priority, frequency, duration, and budget all raise correctly |
+| **Edge cases now covered** | Weekly task isolation, `is_due_today` logic, filter by pet/status, conflict detection on clean plans |
+| **Recurrence depth** | Both daily AND weekly reset cycles verified with boundary conditions (7-day threshold) |
+| **Previously flagged gaps** | All gaps from Phase4_planning.md are now tested — nothing material left uncovered |
+
+The jump from 4 to 5 stars is earned: the suite no longer only tests clean happy-path inputs. It now exercises boundary conditions (weekly tasks at exactly 7 days vs. 6 days), filtering edge cases (unknown pet name returns empty), and recurrence isolation (weekly task stays completed when daily ones reset). That is a meaningfully complete suite for the scope of this system.
+
+
 - What edge cases would you test next if you had more time?
+
+Given 41/41 passing, the remaining untested edge cases are:
+
+| Edge case | Why it matters |
+|---|---|
+| Two high-priority tasks both exceed remaining budget | Scheduler force-includes high-priority work — behavior undefined when it can't fit both |
+| `preferred_start_time` near midnight | Start at `"23:30"` with a 60-min task pushes end past `"00:00"` — does time math wrap or raise? |
+| Multi-pet time conflict at owner level | Two pets each have a high-priority task at the same slot — owner can only do one at a time |
+| `special_needs` medication task always scheduled | `load_default_tasks()` injects medication — verify it survives even a tight budget |
+| Pet with zero tasks | `generate_plan()` on an empty task list should return empty `DailyPlan`, not raise |
+| `remove_task` on a non-existent title | Should it raise, warn, or silently no-op? Current behavior untested |
+| Streamlit UI layer | No tests verify that the UI correctly calls the backend or renders the plan output |
+
+The top priority would be the two high-priority tasks over budget case — it targets the scheduler's most complex decision branch and is the most likely source of a silent bug in production.
+
 
 ---
 
@@ -303,10 +399,76 @@ This test verifies that each call to `add_task()` increases the pet's task list 
 
 - What part of this project are you most satisfied with?
 
+The test suite itself, specifically how it evolved from a basic set of happy-path checks into a suite that earns its confidence rating.
+
+The most satisfying moment was the jump from 27 to 41 tests, because the 14 added tests weren't padding; each one closed a specific gap that was reasoned about and documented in Phase4_planning.md before a single line of test code was written. That sequence:
+
+identify gap → articulate why it matters → write the test → see it pass
+is exactly the right order. A test written without understanding the failure mode it guards against is just noise. Every test in this suite has a named reason.
+
+The second satisfying detail is the two-assertion pattern in test_daily_task_reappears_after_reset — checking that the task is absent after completion before checking that it reappears after reset. That intermediate assertion costs one line and eliminates an entire class of false greens where reset_daily_tasks() is a no-op but the test still passes. That kind of precision is what separates a meaningful suite from a green dashboard that lies.
+
+The part I am most satisfied with is the **ownership redesign** — moving tasks
+from `Scheduler` onto `Pet`.
+
+The AI's first suggestion was to give `Scheduler` its own `tasks: list[Task]`
+pool, which is the obvious approach. I rejected it and redesigned so that each
+`Pet` owns its tasks, `Owner` aggregates them via `get_all_pending_tasks()`, and
+`Scheduler` reads them at runtime without holding any state of its own.
+
+This one decision had a cascade of positive effects:
+- `Scheduler` became stateless and easier to test — you can create a fresh
+  `Scheduler(owner)` at any point and it always reflects current pet state
+- `ScheduledTask` naturally gained a `pet` reference, which made the output
+  table more informative (every row shows which pet the task belongs to)
+- `DailyPlan.filter_by_pet()` became trivial to implement
+- The multi-pet feature fell out for free — adding a second pet to `owner.pets`
+  automatically includes its tasks in the next `generate_plan()` call with no
+  changes to `Scheduler`
+
+It is the clearest example in this project of a design decision that made the
+code simpler rather than more complex.
+
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+1. Fix the budget model
+
+The current scheduler works cleanly because task durations always add up to exactly the available minutes. In a real system, the owner's available_minutes should be a hard constraint that the scheduler actively fights against — with a documented tiebreaker rule when two high-priority tasks both exceed the remaining budget. Right now that branch is untested because the inputs are always designed to fit.
+
+2. Separate scheduling time from wall-clock time
+
+generate_plan() assigns "HH:MM" strings directly, but there is no concept of a date. This makes multi-day simulation fragile — reset_daily_tasks() works, but there is no way to ask "is this task overdue?" across calendar days. Replacing time strings with datetime objects internally would make recurrence, overdue detection, and the is_due_today logic far more precise.
+
+3. Make DailyPlan the single source of truth for conflicts
+
+Right now conflict detection lives in the test suite — two tests assert that the plan has no duplicates or overlaps. That logic should live in DailyPlan itself, raising or flagging on construction rather than relying on tests to catch it after the fact. A plan that is structurally invalid should not be a valid DailyPlan object.
+
+| What | Current state | Redesigned state |
+|---|---|---|
+| Budget model | Inputs always fit perfectly | Hard constraint with explicit tiebreaker logic |
+| Time representation | `"HH:MM"` strings | `datetime` objects with date awareness |
+| Conflict detection | Verified by tests after the fact | Enforced by `DailyPlan` on construction |
+
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+The most important lesson from this project: AI can draft a test in seconds, but it cannot tell you whether that test is worth writing. It will produce syntactically correct, plausible-looking assertions that pass — and still be useless if the scenario was never thought through.
+
+The clearest example was the conflict detection tests. A first draft could have been one test:
+
+assert len(start_times) == len(set(start_times))
+That looks complete. AI would likely stop there. The human question — what if two tasks don't share a start time but still overlap? — is what produced the second test. That question requires understanding the domain, not just the syntax.
+
+The pattern that worked throughout this project:
+
+
+| Who | Responsibility |
+|---|---|
+| AI | Draft the structure, fill the boilerplate, suggest coverage |
+| Human | Define what correctness means, identify what's missing, decide what's worth testing |
+Designing systems is mostly about making explicit decisions — what should happen in every case, including the ones you hope never occur. AI accelerates the writing. It does not replace the thinking.

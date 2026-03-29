@@ -97,6 +97,36 @@ Confidence Level: ★★★★☆ (4/5)
 | Skipped tasks | Comma-joined `st.info` string | Full `st.dataframe` with pet, task, duration, reason columns |
 | Buttons | Plain labels | Emoji labels + `use_container_width=True` |
 
+
+## Features
+
+### Core Scheduling
+- **Priority-based scheduling** — tasks are sorted high → medium → low before fitting into the day; duration is used as a tiebreaker within the same priority level (`Scheduler._sort_by_priority`)
+- **Greedy time-budget fitting** — tasks are placed into the schedule until the owner's available minutes are exhausted (`Scheduler._fits_in_budget`)
+- **Force-include high-priority tasks** — high-priority tasks are always scheduled even if they exceed the remaining budget (`Scheduler.generate_plan`)
+- **Preferred start time** — the schedule begins at the owner's chosen start time and builds contiguous time blocks from there
+
+### Task Management
+- **Daily recurrence** — daily tasks are reset to incomplete at the start of each new day (`Scheduler.reset_daily_tasks`)
+- **Weekly recurrence** — weekly tasks reset only after 7+ calendar days since last completion, using `last_completed_date` (`Task.is_due_today`)
+- **Task completion tracking** — `mark_complete()` flips the completed flag and records the completion date; `mark_incomplete()` reverses it
+- **Species-default tasks** — loading a pet auto-populates appropriate tasks (e.g., dogs get walks, cats get litter box) (`Pet.load_default_tasks`)
+- **Special needs injection** — pets with medication in their special needs automatically receive a high-priority daily medication task
+
+### Plan Output
+- **Chronological sorting** — the final schedule is displayed in ascending start-time order (`DailyPlan.sort_by_time`)
+- **Conflict detection** — overlapping time slots are identified and surfaced as warnings (`DailyPlan.detect_conflicts`)
+- **Per-pet filtering** — the plan can be filtered to show only one pet's tasks (`DailyPlan.filter_by_pet`)
+- **Plain-language explanation** — each scheduled task includes a reason string describing why it was included or skipped (`DailyPlan.explain`)
+- **Skipped task reporting** — tasks that didn't fit the budget are listed separately with pet, title, duration, and priority
+
+### Multi-Pet Support
+- **Multiple pets per owner** — an owner manages a roster of pets; tasks are retrieved across all of them as `(pet, task)` pairs
+- **Per-pet task ownership** — each task belongs to a specific pet and carries that reference through to the final scheduled slot
+- **Cross-pet pending filter** — `Owner.get_all_pending_tasks()` returns only incomplete tasks across every pet in one call
+
+---
+
 What's different from the Phase 1 UML:
 
 | Class | What changed |
@@ -108,6 +138,49 @@ What's different from the Phase 1 UML:
 | **`DailyPlan`** | Added `owner` reference; added `sort_by_time()`, `filter_by_pet()`, `detect_conflicts()` |
 | **`ScheduledTask`** | Added `pet: Pet` reference (was only `task: Task` before) |
 
+
+# Demo
+
+### Run the app
+```bash
+streamlit run app.py
+```
+
+### Walkthrough
+
+**Step 1 — Add a Pet**
+Enter your name, daily time budget (minutes), preferred start time, pet name, and species.
+Check "Load default tasks" to auto-populate species-appropriate care tasks.
+Click **💾 Save owner & pet**.
+
+<div align="center"><img src="initial_ demo1.png" alt="Initial Demo1" width="100%"></div>
+
+**Step 2 — Schedule a Task**
+Add custom tasks with a title, duration, priority, and frequency.
+Each submission calls `pet.add_task(Task(...))` and updates the live task table with colour-coded priority badges (🔴 high · 🟡 medium · 🟢 low).
+
+<div align="center"><img src="initial_ demo2.png" alt="Initial Demo2" width="100%"></div>
+
+**Step 3 — See Today's Tasks**
+Click **📅 Generate schedule** to run the scheduler.
+The app displays:
+- Three summary metrics — tasks scheduled, time used, tasks skipped
+- A time-sorted schedule table (`DailyPlan.sort_by_time`)
+- Conflict warnings if any time slots overlap (`DailyPlan.detect_conflicts`)
+- A collapsible "Why was each task chosen?" explanation (`DailyPlan.explain`)
+- A skipped-tasks table for anything that didn't fit the budget
+
+<div align="center"><img src="initial_ demo3.png" alt="Initial Demo3" width="100%"></div>
+
+<div align="center"><img src="initial_ demo4.png" alt="Initial Demo4" width="100%"></div>
+
+### Terminal demo
+```bash
+python main.py
+```
+Runs a fully scripted demo with two pets (Mochi the dog, Luna the cat), six tasks, and a 90-minute budget — no browser required.
+
+---
 
 
 
