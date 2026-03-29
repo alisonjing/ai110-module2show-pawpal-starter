@@ -69,7 +69,7 @@ Here is the updated UML Diagram:
 And finally, here is the final UML diagram:
 
 
-<div align="center"><img src="Final_UML_Diagram" alt="Final UML Diagram" width="80%"></div>
+<div align="center"><img src="Final_UML.png" alt="Final UML Diagram" width="80%"></div>
 
 
 Based on the full final implementation in pawpal_system.py, here are all the updates needed:
