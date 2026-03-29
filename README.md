@@ -153,13 +153,13 @@ Enter your name, daily time budget (minutes), preferred start time, pet name, an
 Check "Load default tasks" to auto-populate species-appropriate care tasks.
 Click **💾 Save owner & pet**.
 
-<div align="center"><img src="initial_ demo1.png" alt="Initial Demo1" width="100%"></div>
+<div align="center"><img src="initial_demo1.png" alt="Initial Demo1" width="100%"></div>
 
 **Step 2 — Schedule a Task**
 Add custom tasks with a title, duration, priority, and frequency.
 Each submission calls `pet.add_task(Task(...))` and updates the live task table with colour-coded priority badges (🔴 high · 🟡 medium · 🟢 low).
 
-<div align="center"><img src="initial_ demo2.png" alt="Initial Demo2" width="100%"></div>
+<div align="center"><img src="initial_demo2.png" alt="Initial Demo2" width="100%"></div>
 
 **Step 3 — See Today's Tasks**
 Click **📅 Generate schedule** to run the scheduler.
@@ -170,9 +170,9 @@ The app displays:
 - A collapsible "Why was each task chosen?" explanation (`DailyPlan.explain`)
 - A skipped-tasks table for anything that didn't fit the budget
 
-<div align="center"><img src="initial_ demo3.png" alt="Initial Demo3" width="100%"></div>
+<div align="center"><img src="initial_demo3.png" alt="Initial Demo3" width="100%"></div>
 
-<div align="center"><img src="initial_ demo4.png" alt="Initial Demo4" width="100%"></div>
+<div align="center"><img src="initial_demo4.png" alt="Initial Demo4" width="100%"></div>
 
 ### Terminal demo
 ```bash
