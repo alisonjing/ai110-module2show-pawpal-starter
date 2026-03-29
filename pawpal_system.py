@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 
 VALID_PRIORITIES  = {"low", "medium", "high"}
@@ -20,6 +20,7 @@ class Task:
     frequency: str          # "daily" | "weekly" | "as-needed"
     category: str = "general"
     completed: bool = False
+    last_completed_date: date | None = None
 
     def __post_init__(self) -> None:
         """Validate priority, frequency, and duration on construction."""
@@ -31,8 +32,9 @@ class Task:
             raise ValueError("duration_minutes must be greater than 0")
 
     def mark_complete(self) -> None:
-        """Mark this task as completed."""
+        """Mark this task as completed and record today's date."""
         self.completed = True
+        self.last_completed_date = date.today()
 
     def mark_incomplete(self) -> None:
         """Reset this task to incomplete (e.g., at the start of a new day)."""
@@ -41,6 +43,22 @@ class Task:
     def is_high_priority(self) -> bool:
         """Return True if this task's priority is high."""
         return self.priority == "high"
+
+    def is_due_today(self, today: date | None = None) -> bool:
+        """Return True if this task should appear in today's schedule.
+
+        - weekly:    due if never completed, or 7+ days since last completion
+                     (calendar-based; ignores the completed flag so a task done
+                     exactly 7 days ago registers as due even before reset).
+        - daily / as-needed: due whenever not yet completed.
+        """
+        if today is None:
+            today = date.today()
+        if self.frequency == "weekly":
+            if self.last_completed_date is None:
+                return True
+            return (today - self.last_completed_date).days >= 7
+        return not self.completed
 
     def to_dict(self) -> dict:
         """Return all task fields as a plain dictionary."""
@@ -176,6 +194,35 @@ class DailyPlan:
         """Return the total scheduled time in minutes across all scheduled tasks."""
         return sum(st.task.duration_minutes for st in self.scheduled_tasks)
 
+    def sort_by_time(self) -> list[ScheduledTask]:
+        """Return scheduled tasks sorted chronologically by start time."""
+        return sorted(
+            self.scheduled_tasks,
+            key=lambda st: datetime.strptime(st.start_time, "%H:%M"),
+        )
+
+    def filter_by_pet(self, pet_name: str) -> list[ScheduledTask]:
+        """Return only the scheduled tasks belonging to the named pet."""
+        return [st for st in self.scheduled_tasks if st.pet.name == pet_name]
+
+    def detect_conflicts(self) -> list[str]:
+        """Check for overlapping time slots in the scheduled plan.
+
+        Returns a list of human-readable conflict descriptions.
+        An empty list means no conflicts were found.
+        """
+        conflicts: list[str] = []
+        sorted_slots = self.sort_by_time()
+        for i in range(len(sorted_slots) - 1):
+            end_dt   = datetime.strptime(sorted_slots[i].end_time,         "%H:%M")
+            start_dt = datetime.strptime(sorted_slots[i + 1].start_time,   "%H:%M")
+            if end_dt > start_dt:
+                conflicts.append(
+                    f"Conflict: '{sorted_slots[i].task.title}' ends {sorted_slots[i].end_time} "
+                    f"but '{sorted_slots[i + 1].task.title}' starts {sorted_slots[i + 1].start_time}"
+                )
+        return conflicts
+
     def display(self) -> list[dict]:
         """Return rows ready for st.table() / st.dataframe()."""
         return [st.to_dict() for st in self.scheduled_tasks]
@@ -224,6 +271,19 @@ class Scheduler:
         """Pull every incomplete task from every pet the owner has."""
         return self.owner.get_all_pending_tasks()
 
+    def filter_pending_by_pet(self, pet_name: str) -> list[tuple[Pet, Task]]:
+        """Return pending tasks for a single named pet."""
+        return [(pet, task) for pet, task in self.get_all_pending() if pet.name == pet_name]
+
+    def filter_by_status(self, completed: bool) -> list[tuple[Pet, Task]]:
+        """Return all tasks across all pets filtered by completion status."""
+        return [
+            (pet, task)
+            for pet in self.owner.pets
+            for task in pet.tasks
+            if task.completed == completed
+        ]
+
     # --- Task management ----------------------------------------------------
 
     def mark_complete(self, pet_name: str, task_title: str) -> None:
@@ -236,11 +296,19 @@ class Scheduler:
                         return
 
     def reset_daily_tasks(self) -> None:
-        """Reset completion status for all daily tasks (run at start of each day)."""
+        """Reset completion status for recurring tasks at the start of a new day.
+
+        - daily:  always reset.
+        - weekly: reset only if 7+ days have passed since last completion.
+        """
+        today = date.today()
         for pet in self.owner.pets:
             for task in pet.tasks:
                 if task.frequency == "daily":
                     task.mark_incomplete()
+                elif task.frequency == "weekly" and task.completed:
+                    if task.last_completed_date is None or (today - task.last_completed_date).days >= 7:
+                        task.mark_incomplete()
 
     # --- Plan generation ----------------------------------------------------
 

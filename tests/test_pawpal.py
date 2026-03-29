@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from pawpal_system import Task, Pet, Owner, Scheduler, DailyPlan
 
 
@@ -225,3 +225,132 @@ def test_scheduler_no_overlapping_time_slots():
             f"Overlap detected: '{slots[i].task.title}' ends at {slots[i].end_time} "
             f"but '{slots[i+1].task.title}' starts at {slots[i+1].start_time}"
         )
+
+
+# --- Sort by time -----------------------------------------------------------
+
+def test_sort_by_time_returns_chronological_order():
+    """sort_by_time() must return tasks in ascending start-time order."""
+    plan = Scheduler(owner=make_owner(minutes=90)).generate_plan()
+    sorted_tasks = plan.sort_by_time()
+    times = [datetime.strptime(st.start_time, "%H:%M") for st in sorted_tasks]
+    assert times == sorted(times)
+
+
+# --- Filter by pet / status -------------------------------------------------
+
+def test_filter_by_pet_returns_only_that_pets_tasks():
+    owner = Owner(name="Jordan", available_minutes=90, preferred_start_time="08:00")
+    mochi = Pet(name="Mochi", species="dog")
+    luna  = Pet(name="Luna",  species="cat")
+    mochi.add_task(Task(title="Walk",    duration_minutes=30, priority="high", frequency="daily"))
+    luna.add_task( Task(title="Feeding", duration_minutes=10, priority="high", frequency="daily"))
+    owner.add_pet(mochi)
+    owner.add_pet(luna)
+    plan = Scheduler(owner=owner).generate_plan()
+    mochi_tasks = plan.filter_by_pet("Mochi")
+    assert len(mochi_tasks) == 1
+    assert all(st.pet.name == "Mochi" for st in mochi_tasks)
+
+
+def test_filter_by_pet_unknown_name_returns_empty():
+    plan = Scheduler(owner=make_owner(minutes=90)).generate_plan()
+    assert plan.filter_by_pet("Unknown") == []
+
+
+def test_filter_by_status_completed():
+    owner = make_owner()
+    scheduler = Scheduler(owner=owner)
+    scheduler.mark_complete("Mochi", "Feeding")
+    completed = scheduler.filter_by_status(completed=True)
+    assert any(t.title == "Feeding" for _, t in completed)
+
+
+def test_filter_by_status_pending():
+    owner = make_owner()
+    scheduler = Scheduler(owner=owner)
+    scheduler.mark_complete("Mochi", "Feeding")
+    pending = scheduler.filter_by_status(completed=False)
+    assert all(t.title != "Feeding" for _, t in pending)
+
+
+def test_filter_pending_by_pet():
+    owner = Owner(name="Jordan", available_minutes=90)
+    mochi = Pet(name="Mochi", species="dog")
+    luna  = Pet(name="Luna",  species="cat")
+    mochi.add_task(Task(title="Walk",    duration_minutes=30, priority="high", frequency="daily"))
+    luna.add_task( Task(title="Feeding", duration_minutes=10, priority="high", frequency="daily"))
+    owner.add_pet(mochi)
+    owner.add_pet(luna)
+    result = Scheduler(owner=owner).filter_pending_by_pet("Luna")
+    assert len(result) == 1
+    assert result[0][1].title == "Feeding"
+
+
+# --- Conflict detection -----------------------------------------------------
+
+def test_detect_conflicts_returns_empty_for_clean_plan():
+    """A freshly generated plan must have zero conflicts."""
+    plan = Scheduler(owner=make_owner(minutes=90)).generate_plan()
+    assert plan.detect_conflicts() == []
+
+
+# --- Recurring tasks --------------------------------------------------------
+
+def test_is_due_today_daily_not_completed():
+    task = Task(title="Walk", duration_minutes=30, priority="high", frequency="daily")
+    assert task.is_due_today() is True
+
+
+def test_is_due_today_completed_task_not_due():
+    task = Task(title="Walk", duration_minutes=30, priority="high", frequency="daily")
+    task.mark_complete()
+    assert task.is_due_today() is False
+
+
+def test_is_due_today_weekly_never_done():
+    task = Task(title="Bath", duration_minutes=30, priority="low", frequency="weekly")
+    assert task.is_due_today() is True
+
+
+def test_is_due_today_weekly_done_recently_not_due():
+    task = Task(title="Bath", duration_minutes=30, priority="low", frequency="weekly")
+    task.mark_complete()           # last_completed_date = today
+    assert task.is_due_today() is False
+
+
+def test_is_due_today_weekly_done_seven_days_ago_is_due():
+    task = Task(title="Bath", duration_minutes=30, priority="low", frequency="weekly")
+    task.mark_complete()
+    task.last_completed_date = date.today() - timedelta(days=7)
+    assert task.is_due_today() is True
+
+
+def test_weekly_task_resets_after_seven_days():
+    """reset_daily_tasks() should restore a weekly task completed 7+ days ago."""
+    task = Task(title="Bath", duration_minutes=30, priority="low", frequency="weekly")
+    task.mark_complete()
+    task.last_completed_date = date.today() - timedelta(days=7)
+
+    owner = Owner(name="Jordan", available_minutes=60)
+    pet = Pet(name="Mochi", species="dog")
+    pet.add_task(task)
+    owner.add_pet(pet)
+
+    Scheduler(owner=owner).reset_daily_tasks()
+    assert task.completed is False
+
+
+def test_weekly_task_not_reset_before_seven_days():
+    """reset_daily_tasks() must NOT reset a weekly task completed less than 7 days ago."""
+    task = Task(title="Bath", duration_minutes=30, priority="low", frequency="weekly")
+    task.mark_complete()
+    task.last_completed_date = date.today() - timedelta(days=3)
+
+    owner = Owner(name="Jordan", available_minutes=60)
+    pet = Pet(name="Mochi", species="dog")
+    pet.add_task(task)
+    owner.add_pet(pet)
+
+    Scheduler(owner=owner).reset_daily_tasks()
+    assert task.completed is True

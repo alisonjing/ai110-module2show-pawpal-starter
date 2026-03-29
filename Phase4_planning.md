@@ -138,3 +138,113 @@ Happy-path coverage	Sorting, recurrence, conflict detection all confirmed workin
 Input validation	Invalid priority, frequency, duration, and budget all raise correctly
 What keeps it from 5 stars	No tests for multi-pet conflict detection, weekly task reset isolation, midnight-rollover edge cases, or the Streamlit UI layer — gaps identified in Phase4_planning.md remain untested
 The scheduling engine is reliable for the scenarios it knows about. The missing coverage is around edge cases (special_needs, over-budget high-priority clashes, non-daily recurrence) that the system supports in code but the test suite doesn't yet exercise.
+
+
+Suggested Improvements
+1. Smarter Priority Tiebreaking — Prefer Shorter Tasks First
+File: pawpal_system.py — _sort_by_priority()
+
+Currently, equal-priority tasks schedule longer ones first. Flip it: schedule shorter tasks first at the same priority so you knock out more tasks before hitting the time budget.
+
+
+# Change: (PRIORITY_RANK[task.priority], -task.duration_minutes)
+# To:     (PRIORITY_RANK[task.priority],  task.duration_minutes)
+2. Sort Skipped Tasks by Priority for the UI
+File: pawpal_system.py — generate_plan()
+
+skipped_tasks are currently in arbitrary order. Sort them so the owner sees which high-priority tasks were dropped first.
+
+
+self.skipped_tasks.sort(key=lambda pt: PRIORITY_RANK[pt[1].priority], reverse=True)
+3. Weekly Task "Due Soon" Detection
+File: pawpal_system.py — Task or Scheduler
+
+Add a last_completed_date field to Task and a is_overdue(days_threshold) method. Then the scheduler can bump weekly tasks to "medium" priority if they haven't been done in 6+ days — preventing them from being perpetually skipped.
+
+
+def is_overdue(self, days_threshold: int = 7) -> bool:
+    if self.last_completed_date is None:
+        return True
+    return (date.today() - self.last_completed_date).days >= days_threshold
+4. Multi-Pet Interleaving — Avoid Long Same-Pet Runs
+File: pawpal_system.py — generate_plan()
+
+After sorting, interleave tasks across pets so no one pet monopolizes the morning (better UX for multi-pet owners). A round-robin by pet after priority sort achieves this with O(n) overhead.
+
+5. total_duration Should Be a Cached Property
+File: pawpal_system.py — DailyPlan
+
+total_duration recalculates on every access. For a large plan, cache it:
+
+
+from functools import cached_property
+
+@cached_property
+def total_duration(self) -> int:
+    return sum(st.task.duration_minutes for st in self.scheduled_tasks)
+6. Deduplication Guard in add_task()
+File: pawpal_system.py — Pet.add_task()
+
+If the user calls "Load Defaults" twice, tasks duplicate. Add a title-based dedup check:
+
+
+def add_task(self, task: Task) -> None:
+    if not any(t.title == task.title for t in self.tasks):
+        self.tasks.append(task)
+7. Budget Utilization Warning
+File: app.py or DailyPlan.explain()
+
+After generating a plan, compute utilization = total_duration / owner.available_minutes. If it's below 50%, show a tip suggesting the owner add more enrichment tasks. If it's above 95%, warn that the schedule is packed.
+
+8. Medication Tasks Always First
+File: pawpal_system.py — _sort_by_priority()
+
+Add a category tiebreaker so "medication" tasks always sort before other high-priority tasks — since missing medication has real health consequences:
+
+
+key=lambda pt: (
+    PRIORITY_RANK[pt[1].priority],
+    1 if pt[1].category == "medication" else 0,
+    -pt[1].duration_minutes
+)
+Quick wins to implement first: #1 (tiebreaking), #4 (dedup), and #8 (medication first) — all are 1–3 line changes with meaningful impact for pet owners.
+
+
+---
+
+## Phase 4 Implementation Summary — 41/41 Tests Passing
+
+### Changes to `pawpal_system.py`
+
+| Feature | Method / Location | What it does |
+|---|---|---|
+| **Recurring tasks** | `Task.last_completed_date` field | Stores the date a task was last completed |
+| **Recurring tasks** | `Task.mark_complete()` | Now records `date.today()` alongside setting `completed = True` |
+| **Recurring tasks** | `Task.is_due_today()` | Weekly tasks due by elapsed days (≥7); daily/as-needed due when not completed |
+| **Recurring reset** | `Scheduler.reset_daily_tasks()` | Also resets `weekly` tasks if 7+ days have passed since last completion |
+| **Sort by time** | `DailyPlan.sort_by_time()` | Returns scheduled tasks sorted chronologically by start time |
+| **Filter by pet** | `DailyPlan.filter_by_pet(pet_name)` | Scheduled tasks for one named pet |
+| **Filter by pet** | `Scheduler.filter_pending_by_pet(pet_name)` | Pending tasks for one named pet |
+| **Filter by status** | `Scheduler.filter_by_status(completed)` | All tasks across all pets filtered by completion state |
+| **Conflict detection** | `DailyPlan.detect_conflicts()` | Returns list of overlap descriptions; empty list = no conflicts |
+
+### New Tests Added to `tests/test_pawpal.py`
+
+| Test | Feature area | What it verifies |
+|---|---|---|
+| `test_sort_by_time_returns_chronological_order` | Sort by time | `sort_by_time()` output is ascending by start time |
+| `test_filter_by_pet_returns_only_that_pets_tasks` | Filter by pet | Only the named pet's tasks are returned |
+| `test_filter_by_pet_unknown_name_returns_empty` | Filter by pet | Unknown pet name yields empty list, not an error |
+| `test_filter_by_status_completed` | Filter by status | Completed tasks appear when `completed=True` |
+| `test_filter_by_status_pending` | Filter by status | Completed task is absent when filtering `completed=False` |
+| `test_filter_pending_by_pet` | Filter by pet | Only the target pet's pending tasks are returned |
+| `test_detect_conflicts_returns_empty_for_clean_plan` | Conflict detection | A freshly generated plan has zero conflicts |
+| `test_is_due_today_daily_not_completed` | Recurring tasks | Incomplete daily task is due today |
+| `test_is_due_today_completed_task_not_due` | Recurring tasks | Completed daily task is not due |
+| `test_is_due_today_weekly_never_done` | Recurring tasks | Weekly task with no history is due |
+| `test_is_due_today_weekly_done_recently_not_due` | Recurring tasks | Weekly task done today is not due again |
+| `test_is_due_today_weekly_done_seven_days_ago_is_due` | Recurring tasks | Weekly task done 7 days ago is due again |
+| `test_weekly_task_resets_after_seven_days` | Recurring reset | `reset_daily_tasks()` clears a weekly task after 7 days |
+| `test_weekly_task_not_reset_before_seven_days` | Recurring reset | `reset_daily_tasks()` leaves a recent weekly task completed |
+
+<div align="center"><img src="41Tests.png" alt="Testing" width="100%"></div>
