@@ -10,10 +10,10 @@ Here's an honest review of where the logic is manual or overly simple:
 Every task is typed out by hand. In the real app a user picks a species and gets defaults automatically via load_default_tasks() — but main.py never calls it. The demo doesn't test that path at all.
 
 
-# What main.py does (manual)
+**What main.py does (manual)**
 mochi.add_task(Task(title="Morning walk", duration_minutes=30, ...))
 
-# What the app actually does
+**What the app actually does**
 mochi.load_default_tasks()   # never called here
 2. The time budget is never tight enough to show real tradeoffs
 With 90 minutes and only 6 tasks totalling 90 minutes exactly, nothing ever gets skipped. The scheduler's most important behavior — choosing what to drop and force-including high-priority overruns — is never exercised in the happy path.
