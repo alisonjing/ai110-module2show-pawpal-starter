@@ -211,7 +211,6 @@ python main.py
 ```
 Runs a fully scripted demo with two pets (Mochi the dog, Luna the cat), six tasks, and a 90-minute budget — no browser required.
 
----
 
 
 
